@@ -109,8 +109,9 @@ export default function Dashboard({ prayerData, onOpenTools, onReadFullSurah, la
 
       {/* Hero: Next Prayer */}
       <motion.div 
-        initial={{ y: 20, opacity: 0 }}
+        initial={{ y: 10, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.2 }}
         className="glass-card rounded-[2.5rem] p-8 relative overflow-hidden group border-accent-gold/20"
       >
         <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">

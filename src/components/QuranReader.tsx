@@ -137,9 +137,10 @@ export default function QuranReader({ surahs, language, initialSurahNumber, init
                <motion.div 
                  key={ayah.number}
                  ref={(el: HTMLDivElement | null) => { verseRefs.current[ayah.numberInSurah] = el; }}
-                 initial={{ opacity: 0, y: 10 }}
-                 whileInView={{ opacity: 1, y: 0 }}
-                 viewport={{ once: true }}
+                 initial={{ opacity: 0 }}
+                 whileInView={{ opacity: 1 }}
+                 viewport={{ once: true, margin: "-50px" }}
+                 transition={{ duration: 0.2 }}
                  className={cn(
                    "p-6 glass-card rounded-3xl border-accent-gold/5 relative group transition-all",
                    initialAyahNumber === ayah.numberInSurah ? "ring-2 ring-accent-gold bg-accent-gold/5" : "bg-bg-secondary/20"
