@@ -1,0 +1,14 @@
+{
+  "name": "Kaifiyat",
+  "description": "A comprehensive Islamic companion app featuring Quran, Hadith, Prayer times, Qibla finder, and more.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "Quran Reading",
+    "Hadith Search",
+    "Prayer Times",
+    "Qibla Direction",
+    "Islamic Tools"
+  ]
+}

@@ -1,0 +1,62 @@
+@import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Nastaliq+Urdu:wght@400..700&display=swap');
+@import "tailwindcss";
+
+:root {
+  --bg-primary: #0A110F;
+  --bg-secondary: #060B0A;
+  --bg-card: #141C1A;
+  --border-main: #1B2624;
+  --text-primary: #E0D7C6;
+  --accent-gold: #C5A059;
+}
+
+:root.light {
+  --bg-primary: #FDFCF9;
+  --bg-secondary: #F5F2EA;
+  --bg-card: #FFFFFF;
+  --border-main: #E5E0D5;
+  --text-primary: #2D2A24;
+  --accent-gold: #A67C37;
+}
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-arabic: "Amiri", serif;
+  --font-urdu: "Noto Nastaliq Urdu", serif;
+  
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-secondary: var(--bg-secondary);
+  --color-bg-card: var(--bg-card);
+  --color-border-main: var(--border-main);
+  --color-text-primary: var(--text-primary);
+  --color-accent-gold: var(--accent-gold);
+  
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --radius-3xl: 2rem;
+}
+
+@layer base {
+  body {
+    @apply bg-bg-primary text-text-primary font-sans antialiased selection:bg-accent-gold/30;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  h1, h2, h3, h4 {
+    @apply font-sans tracking-tight;
+  }
+}
+
+.glass-card {
+  @apply bg-bg-card border border-border-main shadow-xl;
+}
+
+.arabic-text {
+  font-family: var(--font-arabic);
+  direction: rtl;
+}
+
+.urdu-text {
+  font-family: var(--font-urdu);
+  direction: rtl;
+}
