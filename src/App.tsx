@@ -43,6 +43,7 @@ export default function App() {
   const [prayerData, setPrayerData] = useState<{ timings: PrayerTimes; date: HijriDate } | null>(null);
   const [surahs, setSurahs] = useState<Surah[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [quranSelection, setQuranSelection] = useState<{ surah: number; verse: number } | null>(null);
   
   useEffect(() => {
     const root = window.document.documentElement;
@@ -132,8 +133,25 @@ export default function App() {
               transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
               className="h-full"
             >
-              {activePage === 'home' && <Dashboard language={language} prayerData={prayerData} onOpenTools={() => setActivePage('tools')} />}
-              {activePage === 'quran' && <QuranReader surahs={surahs} language={language} />}
+              {activePage === 'home' && (
+                <Dashboard 
+                  language={language} 
+                  prayerData={prayerData} 
+                  onOpenTools={() => setActivePage('tools')} 
+                  onReadFullSurah={(surah, verse) => {
+                    setQuranSelection({ surah, verse });
+                    setActivePage('quran');
+                  }}
+                />
+              )}
+              {activePage === 'quran' && (
+                <QuranReader 
+                  surahs={surahs} 
+                  language={language} 
+                  initialSurahNumber={quranSelection?.surah} 
+                  initialAyahNumber={quranSelection?.verse}
+                />
+              )}
               {activePage === 'reading' && <QuranReading language={language} />}
               {activePage === 'qibla' && <QiblaFinder language={language} location={location} />}
               {activePage === 'tasbeeh' && <Tasbeeh language={language} />}
@@ -148,7 +166,12 @@ export default function App() {
         {navItems.map((item) => (
           <button
             key={item.id}
-            onClick={() => setActivePage(item.id as Page)}
+            onClick={() => {
+              if (item.id === 'quran' && activePage !== 'quran') {
+                setQuranSelection(null);
+              }
+              setActivePage(item.id as Page);
+            }}
             className={cn(
               "flex flex-col items-center gap-1.5 transition-all duration-300 relative",
               activePage === item.id ? "text-accent-gold" : "text-text-primary/40 hover:text-text-primary/70"

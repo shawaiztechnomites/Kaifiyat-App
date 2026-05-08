@@ -8,15 +8,27 @@ import { cn } from '../lib/utils';
 interface Props {
   surahs: Surah[];
   language: 'en' | 'ur';
+  initialSurahNumber?: number | null;
+  initialAyahNumber?: number | null;
 }
 
-export default function QuranReader({ surahs, language }: Props) {
+export default function QuranReader({ surahs, language, initialSurahNumber, initialAyahNumber }: Props) {
   const [selectedSurah, setSelectedSurah] = useState<Surah | null>(null);
   const [ayahs, setAyahs] = useState<Ayah[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [playingAyah, setPlayingAyah] = useState<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const verseRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
+
+  useEffect(() => {
+    if (initialSurahNumber) {
+      const surah = surahs.find(s => s.number === initialSurahNumber);
+      if (surah) {
+        setSelectedSurah(surah);
+      }
+    }
+  }, [initialSurahNumber, surahs]);
 
   useEffect(() => {
     if (selectedSurah) {
@@ -24,6 +36,16 @@ export default function QuranReader({ surahs, language }: Props) {
       getSurahDetail(selectedSurah.number, language).then((data) => {
         setAyahs(data);
         setIsLoadingDetail(false);
+        
+        // Scroll to initial verse if exists
+        if (initialAyahNumber) {
+          setTimeout(() => {
+            const verseEl = verseRefs.current[initialAyahNumber];
+            if (verseEl) {
+              verseEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }, 500);
+        }
       });
     }
     return () => {
@@ -114,10 +136,14 @@ export default function QuranReader({ surahs, language }: Props) {
              {ayahs.map((ayah) => (
                <motion.div 
                  key={ayah.number}
+                 ref={(el: HTMLDivElement | null) => { verseRefs.current[ayah.numberInSurah] = el; }}
                  initial={{ opacity: 0, y: 10 }}
                  whileInView={{ opacity: 1, y: 0 }}
                  viewport={{ once: true }}
-                 className="p-6 glass-card rounded-3xl border-accent-gold/5 relative group bg-bg-secondary/20"
+                 className={cn(
+                   "p-6 glass-card rounded-3xl border-accent-gold/5 relative group transition-all",
+                   initialAyahNumber === ayah.numberInSurah ? "ring-2 ring-accent-gold bg-accent-gold/5" : "bg-bg-secondary/20"
+                 )}
                >
                  <div className="flex justify-between items-start mb-6">
                    <div className="flex items-center gap-3">

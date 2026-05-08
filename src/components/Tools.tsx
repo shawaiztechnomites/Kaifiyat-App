@@ -1,23 +1,24 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Calculator, 
-  Heart, 
-  Languages, 
-  Star, 
-  Share2, 
-  HelpCircle,
-  ShieldCheck,
   ChevronRight,
   ChevronLeft,
   Sparkles,
-  Globe,
   Loader2,
   Moon,
-  Sun
+  Sun,
+  Star,
+  Share2,
+  Heart,
+  Globe,
+  HelpCircle,
+  ShieldCheck,
+  Languages
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { NAMES_OF_MUHAMMAD } from '../constants/names';
+import { getAsmaAlHusna } from '../services/api';
 
 interface Props {
   onBack: () => void;
@@ -27,10 +28,12 @@ interface Props {
   setTheme: (theme: 'dark' | 'light') => void;
 }
 
-type ToolView = 'list' | 'zakat' | 'names' | 'language' | 'theme';
+type ToolView = 'list' | 'zakat' | 'names' | 'muhammad_names' | 'language' | 'theme';
 
 export default function Tools({ onBack, language, setLanguage, theme, setTheme }: Props) {
   const [currentView, setCurrentView] = useState<ToolView>('list');
+  const [asmaAlHusna, setAsmaAlHusna] = useState<any[]>([]);
+  const [isLoadingNames, setIsLoadingNames] = useState(false);
 
   // Translations
   const t = {
@@ -38,7 +41,8 @@ export default function Tools({ onBack, language, setLanguage, theme, setTheme }
       moreTools: 'More Tools',
       manage: 'Manage & Explore',
       zakat: 'Zakat Calculator',
-      names: '99 Names of Muhammad (PBUH)',
+      names: 'Asma-ul-Husna (Allah)',
+      muhammadNames: '99 Names of Muhammad (PBUH)',
       language: 'Language',
       theme: 'Appearance',
       share: 'Share App',
@@ -47,7 +51,8 @@ export default function Tools({ onBack, language, setLanguage, theme, setTheme }
       gold: 'Value of Gold/Silver',
       calculated: 'Calculated Zakat (2.5%)',
       zakatNote: 'Nisab threshold varies. Please consult a scholar.',
-      asmaMeaning: 'Learn the beautiful names of Prophet Muhammad (PBUH)',
+      asmaMeaning: 'Learn and memorize the 99 names of Allah',
+      muhammadMeaning: 'Learn the beautiful names of Prophet Muhammad (PBUH)',
       settings: 'Settings',
       globalLang: 'Global Language Setting',
       langNote: 'This changes the translation language in Quran tab.',
@@ -62,7 +67,8 @@ export default function Tools({ onBack, language, setLanguage, theme, setTheme }
       moreTools: 'مزید ٹولز',
       manage: 'انتظام اور دریافت',
       zakat: 'زکوٰۃ کیلکولیٹر',
-      names: 'محمد ﷺ کے 99 نام',
+      names: 'اللہ کے نام (اسماء الحسنٰی)',
+      muhammadNames: 'محمد ﷺ کے 99 نام',
       language: 'زبان',
       theme: 'ظاہری شکل',
       share: 'ایپ شیئر کریں',
@@ -71,7 +77,8 @@ export default function Tools({ onBack, language, setLanguage, theme, setTheme }
       gold: 'سونے/چاندی کی قیمت',
       calculated: 'حساب شدہ زکوٰۃ (2.5%)',
       zakatNote: 'نصاب کی حد مختلف ہوتی ہے۔ براہ کرم کسی عالم سے مشورہ کریں۔',
-      asmaMeaning: 'نبی کریم ﷺ کے مبارک نام سیکھیں',
+      asmaMeaning: 'اللہ کے 99 نام سیکھیں اور یاد کریں',
+      muhammadMeaning: 'نبی کریم ﷺ کے مبارک نام سیکھیں',
       settings: 'ترتیبات',
       globalLang: 'عالمی زبان کی ترتیب',
       langNote: 'یہ قرآن ٹیب میں ترجمہ کی زبان بدل دے گا۔',
@@ -83,6 +90,16 @@ export default function Tools({ onBack, language, setLanguage, theme, setTheme }
       premium: 'پریمیم ممبر'
     }
   }[language];
+
+  useEffect(() => {
+    if (currentView === 'names' && asmaAlHusna.length === 0) {
+      setIsLoadingNames(true);
+      getAsmaAlHusna().then(data => {
+        setAsmaAlHusna(data);
+        setIsLoadingNames(false);
+      });
+    }
+  }, [currentView]);
 
   // Sub-components
   const ZakatCalculator = () => {
@@ -125,6 +142,30 @@ export default function Tools({ onBack, language, setLanguage, theme, setTheme }
     );
   };
 
+  const NamesOfAllah = () => {
+    if (isLoadingNames) {
+      return (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 text-accent-gold animate-spin" />
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-right duration-300 pb-10">
+        {asmaAlHusna.map((name, i) => (
+          <div key={i} className="glass-card p-4 rounded-2xl text-center space-y-2 group hover:border-accent-gold/30 transition-colors">
+            <p className="arabic-text text-2xl text-white group-hover:text-accent-gold transition-colors">{name.name}</p>
+            <div>
+              <p className="text-[10px] text-text-primary font-medium tracking-tight">{name.transliteration}</p>
+              <p className="text-[9px] text-text-primary/40 uppercase tracking-tighter leading-tight">{name.en.meaning}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   const NamesOfMuhammad = () => {
     return (
       <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-right duration-300 pb-10">
@@ -152,6 +193,7 @@ export default function Tools({ onBack, language, setLanguage, theme, setTheme }
       items: [
         { id: 'zakat', name: t.zakat, icon: Calculator, desc: language === 'en' ? 'Calculate your annual Zakat easily' : 'اپنی سالانہ زکوٰۃ کا آسانی سے حساب لگائیں', color: 'text-accent-gold' },
         { id: 'names', name: t.names, icon: Sparkles, desc: t.asmaMeaning, color: 'text-blue-400' },
+        { id: 'muhammad_names', name: t.muhammadNames, icon: Star, desc: t.muhammadMeaning, color: 'text-green-400' },
       ]
     },
     {
@@ -178,7 +220,8 @@ export default function Tools({ onBack, language, setLanguage, theme, setTheme }
           <h2 className="text-2xl font-sans text-accent-gold font-bold tracking-tight uppercase">
             {currentView === 'list' ? t.moreTools : 
              currentView === 'zakat' ? t.zakat : 
-             currentView === 'names' ? (language === 'ur' ? 'محمد ﷺ کے نام' : 'Muhammad PBUH Names') : 
+             currentView === 'names' ? (language === 'ur' ? 'اللہ کے نام' : 'Names of Allah') : 
+             currentView === 'muhammad_names' ? (language === 'ur' ? 'محمد ﷺ کے نام' : 'Muhammad PBUH Names') : 
              currentView === 'theme' ? t.theme : t.settings}
           </h2>
           <p className="text-text-primary/40 text-[10px] uppercase tracking-widest font-bold">
@@ -221,7 +264,7 @@ export default function Tools({ onBack, language, setLanguage, theme, setTheme }
                       <motion.button
                         key={item.id}
                         whileTap={{ scale: 0.98 }}
-                        onClick={() => ['zakat', 'names', 'language', 'theme'].includes(item.id) && setCurrentView(item.id as ToolView)}
+                        onClick={() => ['zakat', 'names', 'muhammad_names', 'language', 'theme'].includes(item.id) && setCurrentView(item.id as ToolView)}
                         className="w-full glass-card p-5 rounded-3xl flex items-center justify-between group hover:bg-white/5 transition-colors"
                       >
                         <div className="flex items-center gap-5 text-left">
@@ -249,7 +292,8 @@ export default function Tools({ onBack, language, setLanguage, theme, setTheme }
             exit={{ opacity: 0, x: 20 }}
           >
             {currentView === 'zakat' && <ZakatCalculator />}
-            {currentView === 'names' && <NamesOfMuhammad />}
+            {currentView === 'names' && <NamesOfAllah />}
+            {currentView === 'muhammad_names' && <NamesOfMuhammad />}
             {currentView === 'theme' && (
               <div className="glass-card p-6 rounded-3xl space-y-6">
                 <p className="text-xs font-bold text-text-primary/60 uppercase tracking-widest text-center">{t.themeTitle}</p>

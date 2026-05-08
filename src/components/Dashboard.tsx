@@ -1,16 +1,29 @@
 import { motion } from 'motion/react';
-import { Clock, MapPin, Sun, Moon, Cloud, ChevronRight, Menu } from 'lucide-react';
+import { Clock, Sun, Moon, Cloud, Menu, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
+import { useState, useEffect } from 'react';
 import { PrayerTimes, HijriDate } from '../types';
 import { formatTime, getRemainingTime, cn } from '../lib/utils';
+import { getVerseOfTheDay } from '../services/api';
 
 interface Props {
   prayerData: { timings: PrayerTimes; date: HijriDate } | null;
   onOpenTools: () => void;
+  onReadFullSurah: (surahNumber: number, ayahNumber: number) => void;
   language: 'en' | 'ur';
 }
 
-export default function Dashboard({ prayerData, onOpenTools, language }: Props) {
+export default function Dashboard({ prayerData, onOpenTools, onReadFullSurah, language }: Props) {
+  const [verse, setVerse] = useState<{ arabic: string; translation: string; surah: string; surahNumber: number; number: number } | null>(null);
+  const [isLoadingVerse, setIsLoadingVerse] = useState(true);
+
+  useEffect(() => {
+    getVerseOfTheDay(language).then(data => {
+      setVerse(data);
+      setIsLoadingVerse(false);
+    });
+  }, [language]);
+
   if (!prayerData) return null;
 
   const t = {
@@ -177,18 +190,42 @@ export default function Dashboard({ prayerData, onOpenTools, language }: Props) 
         <div className="glass-card rounded-[2rem] p-6 border-accent-gold/10 bg-bg-secondary/30">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-accent-gold">{t.verse}</h3>
-            <span className="text-[9px] text-text-primary/40 font-sans italic">Surah Al-Baqarah 2:152</span>
+            {isLoadingVerse ? (
+              <Loader2 className="w-3 h-3 text-accent-gold animate-spin" />
+            ) : (
+              <span className="text-[9px] text-text-primary/40 font-sans italic">{verse?.surah} {verse?.number}</span>
+            )}
           </div>
-          <p className="arabic-text text-xl text-white mb-4 leading-loose text-right">
-            فَاذْكُرُونِي أَذْكُرْكُمْ وَاشْكُرُوا لِي وَلَا تَكْفُرُونِ
-          </p>
-          <p className={cn(
-            "text-text-primary/80 text-sm leading-relaxed italic mb-4",
-            language === 'ur' ? "urdu-text text-base" : "font-sans"
-          )}>
-            {language === 'ur' ? '"پس تم میرا ذکر کرو، میں تمہارا ذکر کروں گا، اور میرا شکر ادا کرو اور میری ناشکری نہ کرو۔"' : '"So remember Me; I will remember you. And be grateful to Me and do not deny Me."'}
-          </p>
-          <button className="w-full py-3 rounded-xl border border-accent-gold/20 text-accent-gold text-[10px] uppercase font-bold tracking-widest hover:bg-accent-gold/5 transition-colors">
+          
+          {isLoadingVerse ? (
+            <div className="h-24 flex items-center justify-center">
+              <div className="w-1/2 h-2 bg-white/5 rounded-full overflow-hidden">
+                <motion.div 
+                  initial={{ x: '-100%' }}
+                  animate={{ x: '100%' }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                  className="w-full h-full bg-accent-gold/20"
+                />
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className="arabic-text text-xl text-white mb-4 leading-loose text-right">
+                {verse?.arabic}
+              </p>
+              <p className={cn(
+                "text-text-primary/80 text-sm leading-relaxed italic mb-4",
+                language === 'ur' ? "urdu-text text-base" : "font-sans"
+              )}>
+                {verse?.translation}
+              </p>
+            </>
+          )}
+
+          <button 
+            onClick={() => verse && onReadFullSurah(verse.surahNumber, verse.number)}
+            className="w-full py-3 rounded-xl border border-accent-gold/20 text-accent-gold text-[10px] uppercase font-bold tracking-widest hover:bg-accent-gold/5 transition-colors"
+          >
             {t.readFull}
           </button>
         </div>

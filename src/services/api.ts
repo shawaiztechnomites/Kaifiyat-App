@@ -86,6 +86,46 @@ export const getQiblaDirection = async (latitude: number, longitude: number): Pr
   }
 };
 
+export const getAsmaAlHusna = async (): Promise<any[]> => {
+  try {
+    const response = await fetch(`${ALADHAN_BASE}/asmaAlHusna`);
+    const data = await response.json();
+    return data.data || [];
+  } catch (error) {
+    console.error('Error fetching Asma Al Husna:', error);
+    return [];
+  }
+};
+
+export const getVerseOfTheDay = async (language: 'en' | 'ur' = 'en'): Promise<{ arabic: string; translation: string; surah: string; surahNumber: number; number: number } | null> => {
+  try {
+    // Generate a daily index based on date (1 to 6236)
+    const now = new Date();
+    const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000);
+    const verseIndex = ((dayOfYear + now.getFullYear()) % 6236) + 1;
+    
+    const translationEdition = language === 'ur' ? 'ur.jalandhry' : 'en.sahih';
+    const response = await fetch(`${QURAN_CLOUD_BASE}/ayah/${verseIndex}/editions/quran-uthmani,${translationEdition}`);
+    const data = await response.json();
+    
+    if (data.code === 200 && data.data && Array.isArray(data.data)) {
+      const arabic = data.data[0];
+      const trans = data.data[1];
+      return {
+        arabic: arabic.text,
+        translation: trans.text,
+        surah: language === 'ur' ? arabic.surah.name : arabic.surah.englishName,
+        surahNumber: arabic.surah.number,
+        number: arabic.numberInSurah
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Error fetching verse of the day:', error);
+    return null;
+  }
+};
+
 export const getJuzDetail = async (number: number, language: 'en' | 'ur' = 'ur'): Promise<Ayah[]> => {
   try {
     const translationEdition = language === 'ur' ? 'ur.jalandhry' : 'en.sahih';
