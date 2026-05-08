@@ -62,9 +62,15 @@ export default function Tasbeeh({ language }: Props) {
     }
   }, [count, target, controls]);
 
+  const [resetConfirm, setResetConfirm] = useState(false);
+
   const handleReset = () => {
-    if (confirm('Reset current counter?')) {
+    if (resetConfirm) {
       setCount(0);
+      setResetConfirm(false);
+    } else {
+      setResetConfirm(true);
+      setTimeout(() => setResetConfirm(false), 3000); // Auto-cancel after 3s
     }
   };
 
@@ -87,9 +93,13 @@ export default function Tasbeeh({ language }: Props) {
           </button>
           <button 
             onClick={handleReset}
-            className="p-3 glass-card rounded-2xl text-gold-100/60 hover:text-gold-500 transition-colors"
+            className={cn(
+              "p-3 glass-card rounded-2xl transition-all duration-300 flex items-center gap-2",
+              resetConfirm ? "text-red-500 border-red-500/50 bg-red-500/10" : "text-gold-100/60 hover:text-gold-500 transition-colors"
+            )}
           >
-            <RefreshCcw className="w-5 h-5" />
+            <RefreshCcw className={cn("w-5 h-5", resetConfirm && "animate-spin-slow")} />
+            {resetConfirm && <span className="text-[10px] font-bold uppercase tracking-widest">{language === 'ur' ? 'صفر کریں؟' : 'Reset?'}</span>}
           </button>
         </div>
       </header>

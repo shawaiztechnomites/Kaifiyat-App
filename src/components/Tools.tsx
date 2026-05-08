@@ -14,11 +14,15 @@ import {
   Globe,
   HelpCircle,
   ShieldCheck,
-  Languages
+  Languages,
+  LogOut,
+  User as UserIcon,
+  Mail
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { NAMES_OF_MUHAMMAD } from '../constants/names';
 import { getAsmaAlHusna } from '../services/api';
+import { auth, signInWithGoogle, signInWithFacebook, logout, onAuthStateChanged, User } from '../services/firebase';
 
 interface Props {
   onBack: () => void;
@@ -34,6 +38,16 @@ export default function Tools({ onBack, language, setLanguage, theme, setTheme }
   const [currentView, setCurrentView] = useState<ToolView>('list');
   const [asmaAlHusna, setAsmaAlHusna] = useState<any[]>([]);
   const [isLoadingNames, setIsLoadingNames] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setIsAuthLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Translations
   const t = {
@@ -60,8 +74,14 @@ export default function Tools({ onBack, language, setLanguage, theme, setTheme }
       themeNote: 'Choose between light and dark mode.',
       dark: 'Dark Mode',
       light: 'Light Mode',
-      back: 'Go Back',
-      premium: 'Premium Member'
+      back: 'back',
+      premium: 'Soul Member',
+      loginTitle: 'Join the Community',
+      loginSubtitle: 'Signup or Login to sync your progress',
+      googleLogin: 'Continue with Google',
+      facebookLogin: 'Continue with Facebook',
+      logout: 'Logout',
+      guest: 'Guest User'
     },
     ur: {
       moreTools: 'مزید ٹولز',
@@ -86,8 +106,14 @@ export default function Tools({ onBack, language, setLanguage, theme, setTheme }
       themeNote: 'ڈارک اور لائٹ موڈ کے درمیان انتخاب کریں۔',
       dark: 'ڈارک موڈ',
       light: 'لائٹ موڈ',
-      back: 'واپس جائیں',
-      premium: 'پریمیم ممبر'
+      back: 'واپس',
+      premium: 'روحانی رکن',
+      loginTitle: 'کمیونٹی میں شامل ہوں',
+      loginSubtitle: 'اپنی پیشرفت کو ہم آہنگ کرنے کے لیے سائن اپ یا لاگ ان کریں',
+      googleLogin: 'گوگل کے ساتھ جاری رکھیں',
+      facebookLogin: 'فیس بک کے ساتھ جاری رکھیں',
+      logout: 'لاگ آؤٹ',
+      guest: 'مہمان صارف'
     }
   }[language];
 
@@ -239,18 +265,62 @@ export default function Tools({ onBack, language, setLanguage, theme, setTheme }
             exit={{ opacity: 0, x: -20 }}
             className="space-y-8"
           >
-            {/* Profile Section */}
-            <section className="glass-card rounded-[2.5rem] p-6 flex items-center gap-6 border-accent-gold/10">
-              <div className="w-16 h-16 rounded-full bg-accent-gold flex items-center justify-center text-bg-primary font-bold text-xl shadow-lg border-4 border-white/5 shrink-0">
-                ST
-              </div>
-              <div>
-                <h3 className="text-lg font-sans font-bold text-text-primary">Shawaiz Technomites</h3>
-                <p className="text-[10px] text-accent-gold uppercase tracking-[0.2em] font-bold flex items-center gap-1 mt-1">
-                  <Star className="w-3 h-3 fill-accent-gold" />
-                  {t.premium}
-                </p>
-              </div>
+            {/* Profile/Auth Section */}
+            <section className="glass-card rounded-[2.5rem] p-6 border-accent-gold/10">
+              {isAuthLoading ? (
+                <div className="flex items-center justify-center p-4">
+                  <Loader2 className="w-6 h-6 text-accent-gold animate-spin" />
+                </div>
+              ) : user ? (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-6">
+                    <div className="w-16 h-16 rounded-full bg-accent-gold overflow-hidden flex items-center justify-center border-4 border-white/5 shrink-0 shadow-lg">
+                      {user.photoURL ? (
+                        <img src={user.photoURL} alt={user.displayName || 'User'} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      ) : (
+                        <UserIcon className="w-8 h-8 text-bg-primary" />
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-sans font-bold text-text-primary line-clamp-1">{user.displayName || t.guest}</h3>
+                      <p className="text-[10px] text-accent-gold uppercase tracking-[0.2em] font-bold flex items-center gap-1 mt-1">
+                        <Star className="w-3 h-3 fill-accent-gold" />
+                        {t.premium}
+                      </p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => logout()}
+                    className="p-3 bg-red-500/10 text-red-500 rounded-2xl hover:bg-red-500/20 transition-colors"
+                    title={t.logout}
+                  >
+                    <LogOut className="w-5 h-5" />
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="text-center space-y-1">
+                    <h3 className="text-lg font-sans font-bold text-text-primary uppercase tracking-tight">{t.loginTitle}</h3>
+                    <p className="text-[10px] text-text-primary/40 font-medium">{t.loginSubtitle}</p>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3">
+                    <button 
+                      onClick={() => signInWithGoogle()}
+                      className="w-full py-4 px-6 rounded-2xl bg-white text-black font-bold flex items-center justify-center gap-3 hover:bg-white/90 transition-all text-sm"
+                    >
+                      <img src="https://www.google.com/favicon.ico" alt="Google" className="w-4 h-4" />
+                      {t.googleLogin}
+                    </button>
+                    <button 
+                      onClick={() => signInWithFacebook()}
+                      className="w-full py-4 px-6 rounded-2xl bg-[#1877F2] text-white font-bold flex items-center justify-center gap-3 hover:bg-[#1877F2]/90 transition-all text-sm"
+                    >
+                      <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                      {t.facebookLogin}
+                    </button>
+                  </div>
+                </div>
+              )}
             </section>
 
             <div className="space-y-8 pb-10">
