@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, ChangeEvent } from 'react';
+import { useState, useRef, ChangeEvent } from 'react';
 import {
   Share2,
   Bluetooth,
@@ -7,53 +7,37 @@ import {
   Mail,
   Copy,
   Check,
-  Smartphone,
   Upload,
   X,
-  AlertCircle,
-  Download,
-  Loader2
+  AlertCircle
 } from 'lucide-react';
-import { Capacitor } from '@capacitor/core';
 import { cn } from '../lib/utils';
 
 interface Props {
   language: 'en' | 'ur';
 }
 
-const API_BASE = Capacitor.isNativePlatform()
-  ? (import.meta.env.VITE_API_BASE_URL || 'https://ais-pre-lzcux3meopcwkk3h2qnxqk-901985584736.asia-southeast1.run.app')
-  : '';
-
 export default function ShareApp({ language }: Props) {
   const [apkFile, setApkFile] = useState<File | null>(null);
-  const [serverApkInfo, setServerApkInfo] = useState<{ available: boolean; filename: string; sizeBytes?: number } | null>(null);
-  const [isPreparingApkShare, setIsPreparingApkShare] = useState(false);
   const [copied, setCopied] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'info' | 'error'; text: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const appUrl = typeof window !== 'undefined' ? window.location.origin : '';
-  const apkDownloadUrl = `${API_BASE}/api/download-apk`;
+  const isPublicWebUrl =
+    typeof window !== 'undefined' &&
+    /^https?:\/\//.test(window.location.origin) &&
+    window.location.hostname !== 'localhost' &&
+    window.location.hostname !== '127.0.0.1';
 
-  useEffect(() => {
-    fetch(`${API_BASE}/api/apk-info`)
-      .then((res) => res.json())
-      .then((data) => setServerApkInfo(data))
-      .catch(() => setServerApkInfo({ available: false, filename: 'Kaifiyat-debug.apk' }));
-  }, []);
+  const appUrl = isPublicWebUrl ? window.location.origin : '';
 
   const t = {
     en: {
       heroTitle: 'Share Kaifiyat App',
       heroDesc: 'Invite friends & family or send the APK directly via WhatsApp, Bluetooth, Nearby Share, and more.',
       nativeShareBtn: 'Share via WhatsApp, Bluetooth & Apps',
-      downloadApkTitle: 'Kaifiyat Android APK',
-      downloadApkBtn: 'Download APK',
-      shareBuiltApkBtn: 'Send APK via Bluetooth / WhatsApp',
-      preparingApk: 'Preparing APK...',
-      apkSectionTitle: 'Or Pick Local APK File (.apk)',
-      apkSectionDesc: 'Choose any .apk package from your device storage to send over Bluetooth, WhatsApp, or Nearby Share.',
+      apkSectionTitle: 'Pick Local APK File (.apk)',
+      apkSectionDesc: 'Choose the Kaifiyat .apk package from your device storage to send over Bluetooth, WhatsApp, or Nearby Share.',
       selectApk: 'Choose .apk File',
       sendApk: 'Send APK via Bluetooth / WhatsApp',
       removeApk: 'Remove',
@@ -62,26 +46,22 @@ export default function ShareApp({ language }: Props) {
       bluetooth: 'Bluetooth / Nearby',
       telegram: 'Telegram',
       email: 'Email',
-      copyLabel: 'App Link',
+      copyLabel: isPublicWebUrl ? 'App Link' : 'Share Message',
       copy: 'Copy',
       copied: 'Copied',
-      shareText: 'Assalamu Alaikum! Try Kaifiyat — Quran, Prayer Times, Daily Azkar & Tasbeeh companion:',
+      shareText: 'Assalamu Alaikum! Try Kaifiyat — Quran, Prayer Times, Daily Azkar & Tasbeeh companion.',
       emailSubject: 'Kaifiyat Islamic App & APK',
       shareSuccess: 'Share sheet opened! Choose WhatsApp, Bluetooth, or another app.',
       apkReady: 'APK ready to send via Bluetooth, WhatsApp, or Nearby Share.',
-      fileShareUnsupported: 'Your current browser cannot send raw APK files directly. Sharing the APK download link instead — or download the APK first and share via Bluetooth/WhatsApp.',
-      nativeUnsupported: 'System share sheet is unavailable on this browser. Please use WhatsApp, Telegram, Email, or Copy Link below.',
+      fileShareUnsupported: 'Your device WebView cannot send raw APK files directly from here. Please share the APK file from your Android Files app via Bluetooth/WhatsApp.',
+      nativeUnsupported: 'System share sheet is unavailable right now. Please use WhatsApp, Telegram, Email, or Copy below.',
       invalidApk: 'Please select a valid .apk Android package file.',
     },
     ur: {
       heroTitle: 'کیفیت ایپ شیئر کریں',
       heroDesc: 'دوستوں اور اہلِ خانہ کو دعوت دیں یا واٹس ایپ، بلوٹوتھ اور دیگر ایپس کے ذریعے براہِ راست APK بھیجیں۔',
       nativeShareBtn: 'واٹس ایپ، بلوٹوتھ اور دیگر ایپس سے شیئر کریں',
-      downloadApkTitle: 'کیفیت اینڈرائیڈ APK',
-      downloadApkBtn: 'APK ڈاؤن لوڈ کریں',
-      shareBuiltApkBtn: 'بلوٹوتھ / واٹس ایپ سے APK بھیجیں',
-      preparingApk: 'APK تیار ہو رہی ہے...',
-      apkSectionTitle: 'یا فون سے APK فائل منتخب کریں (.apk)',
+      apkSectionTitle: 'فون سے APK فائل منتخب کریں (.apk)',
       apkSectionDesc: 'بلوٹوتھ، واٹس ایپ یا نیئربائی شیئر کے ذریعے بھیجنے کے لیے اپنے فون سے .apk فائل منتخب کریں۔',
       selectApk: '.apk فائل منتخب کریں',
       sendApk: 'بلوٹوتھ / واٹس ایپ سے APK بھیجیں',
@@ -91,22 +71,24 @@ export default function ShareApp({ language }: Props) {
       bluetooth: 'بلوٹوتھ / نیئربائی',
       telegram: 'ٹیلی گرام',
       email: 'ای میل',
-      copyLabel: 'ایپ لنک',
+      copyLabel: isPublicWebUrl ? 'ایپ لنک' : 'شیئر پیغام',
       copy: 'کاپی',
       copied: 'کاپی ہو گیا',
-      shareText: 'السلام علیکم! کیفیت ایپ استعمال کریں — قرآن، نماز کے اوقات، روزانہ اذکار اور تسبیح:',
+      shareText: 'السلام علیکم! کیفیت ایپ استعمال کریں — قرآن، نماز کے اوقات، روزانہ اذکار اور تسبیح۔',
       emailSubject: 'کیفیت اسلامی ایپ اور APK',
       shareSuccess: 'شیئر مینو کھل گیا! واٹس ایپ، بلوٹوتھ یا کوئی اور ایپ منتخب کریں۔',
       apkReady: 'APK فائل بلوٹوتھ یا واٹس ایپ کے ذریعے بھیجنے کے لیے تیار ہے۔',
-      fileShareUnsupported: 'یہ براؤزر براہِ راست APK فائل شیئر کرنے کی سہولت نہیں دیتا۔ APK لنک شیئر کیا جا رہا ہے، یا پہلے APK ڈاؤن لوڈ کر کے بلوٹوتھ/واٹس ایپ سے بھیجیں۔',
-      nativeUnsupported: 'اس براؤزر میں سسٹم شیئر دستیاب نہیں ہے۔ براہِ کرم نیچے واٹس ایپ، ٹیلی گرام یا لنک کاپی استعمال کریں۔',
+      fileShareUnsupported: 'اس وقت براہِ راست APK فائل شیئر دستیاب نہیں۔ براہِ کرم فون کی Files ایپ سے APK فائل بلوٹوتھ یا واٹس ایپ پر شیئر کریں۔',
+      nativeUnsupported: 'سسٹم شیئر دستیاب نہیں ہے۔ براہِ کرم نیچے واٹس ایپ، ٹیلی گرام یا کاپی استعمال کریں۔',
       invalidApk: 'براہ کرم درست .apk اینڈرائیڈ فائل منتخب کریں۔',
     },
   }[language];
 
-  const fullShareMessage = `${t.shareText} ${appUrl}`;
+  const fullShareMessage = appUrl ? `${t.shareText} ${appUrl}` : t.shareText;
   const whatsappHref = `https://wa.me/?text=${encodeURIComponent(fullShareMessage)}`;
-  const telegramHref = `https://t.me/share/url?url=${encodeURIComponent(appUrl)}&text=${encodeURIComponent(t.shareText)}`;
+  const telegramHref = appUrl
+    ? `https://t.me/share/url?url=${encodeURIComponent(appUrl)}&text=${encodeURIComponent(t.shareText)}`
+    : `https://t.me/share/url?text=${encodeURIComponent(t.shareText)}`;
   const emailHref = `mailto:?subject=${encodeURIComponent(t.emailSubject)}&body=${encodeURIComponent(fullShareMessage)}`;
 
   const handleApkChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -146,58 +128,20 @@ export default function ShareApp({ language }: Props) {
         }
       }
 
-      await navigator.share({
+      const shareData: ShareData = {
         title: 'Kaifiyat — Spiritual Companion',
         text: t.shareText,
-        url: appUrl,
-      });
+      };
+      if (appUrl) {
+        shareData.url = appUrl;
+      }
+
+      await navigator.share(shareData);
       setStatusMessage({ type: 'success', text: t.shareSuccess });
     } catch (err) {
       if ((err as Error)?.name !== 'AbortError') {
         setStatusMessage({ type: 'info', text: t.nativeUnsupported });
       }
-    }
-  };
-
-  const handleShareServerApk = async () => {
-    if (typeof navigator === 'undefined' || !navigator.share) {
-      setStatusMessage({ type: 'info', text: t.nativeUnsupported });
-      return;
-    }
-
-    setIsPreparingApkShare(true);
-    try {
-      const response = await fetch(apkDownloadUrl);
-      if (!response.ok) throw new Error('Failed to load APK');
-      const blob = await response.blob();
-      const file = new File([blob], serverApkInfo?.filename || 'Kaifiyat-debug.apk', {
-        type: 'application/vnd.android.package-archive',
-      });
-
-      const canShareFiles =
-        typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] });
-
-      if (canShareFiles) {
-        await navigator.share({
-          title: 'Kaifiyat Android APK',
-          text: t.shareText,
-          files: [file],
-        });
-        setStatusMessage({ type: 'success', text: t.shareSuccess });
-      } else {
-        setStatusMessage({ type: 'info', text: t.fileShareUnsupported });
-        await navigator.share({
-          title: 'Kaifiyat Android APK',
-          text: t.shareText,
-          url: `${window.location.origin}/api/download-apk`,
-        });
-      }
-    } catch (err) {
-      if ((err as Error)?.name !== 'AbortError') {
-        setStatusMessage({ type: 'info', text: t.fileShareUnsupported });
-      }
-    } finally {
-      setIsPreparingApkShare(false);
     }
   };
 
@@ -237,7 +181,7 @@ export default function ShareApp({ language }: Props) {
         <button
           type="button"
           onClick={() => handleNativeShare(false)}
-          className="w-full py-4 px-5 rounded-2xl bg-accent-gold text-bg-primary font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2.5 hover:opacity-90 transition-opacity shadow-lg"
+          className="w-full py-4 px-5 rounded-2xl bg-accent-gold text-bg-primary font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2.5 hover:opacity-90 transition-opacity shadow-sm"
         >
           <Share2 className="w-4 h-4" />
           <span className={cn(language === 'ur' && "urdu-text text-sm normal-case tracking-normal")}>
@@ -245,57 +189,6 @@ export default function ShareApp({ language }: Props) {
           </span>
         </button>
       </div>
-
-      {/* Built Kaifiyat APK Download & Share Card */}
-      {serverApkInfo?.available && (
-        <div className="glass-card p-6 rounded-3xl space-y-4 border-green-500/20">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-green-500/15 border border-green-500/30 flex items-center justify-center text-green-400 shrink-0">
-                <Smartphone className="w-5 h-5" />
-              </div>
-              <div className="min-w-0">
-                <h4 className={cn("text-sm font-bold text-text-primary", language === 'ur' && "urdu-text")}>
-                  {t.downloadApkTitle}
-                </h4>
-                <p className="text-[11px] font-mono text-accent-gold truncate">
-                  {serverApkInfo.filename}
-                  {serverApkInfo.sizeBytes ? ` • ${formatFileSize(serverApkInfo.sizeBytes)}` : ''}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            <a
-              href={apkDownloadUrl}
-              download={serverApkInfo.filename}
-              className="w-full py-3.5 px-4 rounded-2xl bg-green-500/15 border border-green-500/30 text-green-400 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-green-500/20 transition-colors"
-            >
-              <Download className="w-4 h-4" />
-              <span className={cn(language === 'ur' && "urdu-text text-sm normal-case tracking-normal")}>
-                {t.downloadApkBtn}
-              </span>
-            </a>
-
-            <button
-              type="button"
-              disabled={isPreparingApkShare}
-              onClick={handleShareServerApk}
-              className="w-full py-3.5 px-4 rounded-2xl bg-blue-500/15 border border-blue-400/30 text-blue-400 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-blue-500/20 transition-colors disabled:opacity-50"
-            >
-              {isPreparingApkShare ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Bluetooth className="w-4 h-4" />
-              )}
-              <span className={cn(language === 'ur' && "urdu-text text-sm normal-case tracking-normal")}>
-                {isPreparingApkShare ? t.preparingApk : t.shareBuiltApkBtn}
-              </span>
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* APK File Sharing Card (Bluetooth / WhatsApp / Nearby) */}
       <div className="glass-card p-6 rounded-3xl space-y-4">
@@ -444,14 +337,14 @@ export default function ShareApp({ language }: Props) {
         </div>
       </div>
 
-      {/* Copy App Link */}
+      {/* Copy App Link / Share Message */}
       <div className="glass-card p-4 rounded-2xl space-y-2">
         <p className="text-[10px] font-bold uppercase tracking-widest text-text-primary/40">{t.copyLabel}</p>
         <div className="flex items-center gap-2">
           <input
             type="text"
             readOnly
-            value={appUrl}
+            value={appUrl || fullShareMessage}
             className="flex-1 bg-bg-primary border border-border-main rounded-xl px-3 py-2.5 text-xs font-mono text-text-primary/70 outline-none"
           />
           <button

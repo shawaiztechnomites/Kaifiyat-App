@@ -3,37 +3,41 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Book, 
-  Clock, 
-  Sparkles, 
-  Menu, 
-  Search, 
-  Sun, 
-  Moon, 
-  Heart, 
-  Settings as SettingsIcon,
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import {
+  Book,
+  Sparkles,
   CircleDot,
   LayoutGrid,
-  ChevronRight,
   RefreshCcw,
-  BookOpen
+  BookOpen,
+  WifiOff
 } from 'lucide-react';
 import { cn } from './lib/utils';
-import { getPrayerTimes, getSurahs } from './services/api';
-import { PrayerTimes, HijriDate, Surah } from './types';
+import {
+  getPrayerTimes,
+  getSurahs,
+  getCachedPrayerTimes,
+  getCachedSurahs,
+  PrayerData
+} from './services/api';
+import { Surah } from './types';
 
-// Page Components (will extract to files later)
 import Dashboard from './components/Dashboard';
-import QuranReader from './components/QuranReader';
-import DailyAzkar from './components/DailyAzkar';
-import Tasbeeh from './components/Tasbeeh';
-import Tools from './components/Tools';
-import QuranReading from './components/QuranReading';
+
+const QuranReader = lazy(() => import('./components/QuranReader'));
+const QuranReading = lazy(() => import('./components/QuranReading'));
+const DailyAzkar = lazy(() => import('./components/DailyAzkar'));
+const Tasbeeh = lazy(() => import('./components/Tasbeeh'));
+const Tools = lazy(() => import('./components/Tools'));
 
 type Page = 'home' | 'quran' | 'reading' | 'azkar' | 'tasbeeh' | 'tools';
+
+const PageFallback = () => (
+  <div className="h-64 flex flex-col items-center justify-center space-y-3">
+    <div className="w-8 h-8 border-2 border-accent-gold border-t-transparent rounded-full animate-spin" />
+  </div>
+);
 
 export default function App() {
   const [activePage, setActivePage] = useState<Page>('home');
@@ -41,20 +45,23 @@ export default function App() {
   const [language, setLanguage] = useState<'en' | 'ur'>('en');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [prayerData, setPrayerData] = useState<{ timings: PrayerTimes; date: HijriDate } | null>(null);
-  const [surahs, setSurahs] = useState<Surah[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [prayerData, setPrayerData] = useState<PrayerData | null>(() => getCachedPrayerTimes());
+  const [prayerError, setPrayerError] = useState(false);
+  const [surahs, setSurahs] = useState<Surah[]>(() => getCachedSurahs());
+  const [isSurahsLoading, setIsSurahsLoading] = useState<boolean>(() => getCachedSurahs().length === 0);
+  const [surahsError, setSurahsError] = useState(false);
+  const [isLoading, setIsLoading] = useState<boolean>(() => getCachedPrayerTimes() === null);
   const [quranSelection, setQuranSelection] = useState<{ surah: number; verse: number } | null>(null);
 
-  const navigateTo = (page: Page) => {
+  const navigateTo = useCallback((page: Page) => {
     setActivePage(page);
     setPageHistory((prev) => {
       if (prev[prev.length - 1] === page) return prev;
       return [...prev, page];
     });
-  };
+  }, []);
 
-  const handleGoBack = () => {
+  const handleGoBack = useCallback(() => {
     setPageHistory((prev) => {
       if (prev.length > 1) {
         const nextHistory = prev.slice(0, -1);
@@ -64,12 +71,12 @@ export default function App() {
       setActivePage('home');
       return ['home'];
     });
-  };
+  }, []);
 
-  const handleOpenTools = () => {
+  const handleOpenTools = useCallback(() => {
     navigateTo('tools');
-  };
-  
+  }, [navigateTo]);
+
   useEffect(() => {
     const root = window.document.documentElement;
     if (theme === 'light') {
@@ -78,6 +85,39 @@ export default function App() {
       root.classList.remove('light');
     }
   }, [theme]);
+
+  const loadSurahs = useCallback(async () => {
+    setSurahsError(false);
+    if (surahs.length === 0) {
+      setIsSurahsLoading(true);
+    }
+    try {
+      const list = await getSurahs();
+      setSurahs(list);
+      setSurahsError(false);
+    } catch {
+      if (getCachedSurahs().length === 0) {
+        setSurahsError(true);
+      }
+    } finally {
+      setIsSurahsLoading(false);
+    }
+  }, [surahs.length]);
+
+  const loadPrayerTimes = useCallback(async (lat: number, lng: number) => {
+    setPrayerError(false);
+    try {
+      const data = await getPrayerTimes(lat, lng);
+      setPrayerData(data);
+      setPrayerError(false);
+    } catch {
+      if (!getCachedPrayerTimes()) {
+        setPrayerError(true);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     const fallbackToMakkah = () => {
@@ -92,28 +132,23 @@ export default function App() {
             lng: position.coords.longitude,
           });
         },
-        (error) => {
-          console.warn('Geolocation unavailable, defaulting to Makkah:', error?.message || `code ${error?.code ?? 'unknown'}`);
+        () => {
           fallbackToMakkah();
         },
-        { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+        { enableHighAccuracy: false, timeout: 6000, maximumAge: 300000 }
       );
     } else {
       fallbackToMakkah();
     }
-    
-    // Fetch Surahs ahead of time
-    getSurahs().then(setSurahs);
-  }, []);
+
+    loadSurahs();
+  }, [loadSurahs]);
 
   useEffect(() => {
     if (location) {
-      getPrayerTimes(location.lat, location.lng).then((data) => {
-        setPrayerData(data);
-        setIsLoading(false);
-      });
+      loadPrayerTimes(location.lat, location.lng);
     }
-  }, [location]);
+  }, [location, loadPrayerTimes]);
 
   const navItems = {
     en: [
@@ -133,66 +168,113 @@ export default function App() {
   }[language];
 
   return (
-    <div className="min-h-screen bg-bg-primary flex flex-col max-w-md mx-auto relative overflow-hidden shadow-2xl border-x border-border-main">
-      {/* Background Decor */}
+    <div className="min-h-screen bg-bg-primary flex flex-col max-w-md mx-auto relative overflow-hidden shadow-md border-x border-border-main">
+      {/* Lightweight Background Decor (no expensive blur-3xl pass) */}
       <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none">
-        <div className="absolute top-[-10%] right-[-10%] w-80 h-80 rounded-full bg-accent-gold blur-3xl" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-80 h-80 rounded-full bg-border-main blur-3xl" />
+        <div
+          className="absolute top-[-10%] right-[-10%] w-80 h-80 rounded-full"
+          style={{ background: 'radial-gradient(circle, var(--accent-gold) 0%, transparent 70%)' }}
+        />
+        <div
+          className="absolute bottom-[-10%] left-[-10%] w-80 h-80 rounded-full"
+          style={{ background: 'radial-gradient(circle, var(--border-main) 0%, transparent 70%)' }}
+        />
       </div>
 
       <main className="flex-1 overflow-y-auto pb-24 pt-4 px-4 relative z-10 scrollbar-hide">
         {isLoading ? (
           <div className="h-full flex flex-col items-center justify-center space-y-4">
-             <motion.div 
-               animate={{ rotate: 360 }}
-               transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-             >
-               <RefreshCcw className="w-8 h-8 text-accent-gold" />
-             </motion.div>
-             <p className="text-text-primary/60 font-serif italic text-sm">Seeking guidance...</p>
+            <RefreshCcw className="w-8 h-8 text-accent-gold animate-spin" />
+            <p className="text-text-primary/60 font-serif italic text-sm">
+              {language === 'ur' ? 'لوڈنگ ہو رہی ہے...' : 'Seeking guidance...'}
+            </p>
           </div>
         ) : (
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activePage}
-              initial={{ opacity: 0, scale: 0.99, y: 5 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.99, y: -5 }}
-              transition={{ duration: 0.15, ease: "easeOut" }}
-              className="h-full"
-            >
-              {activePage === 'home' && (
-                <Dashboard 
-                  language={language} 
-                  prayerData={prayerData} 
-                  onOpenTools={handleOpenTools} 
+          <div className="h-full">
+            {activePage === 'home' && (
+              prayerData ? (
+                <Dashboard
+                  language={language}
+                  prayerData={prayerData}
+                  onOpenTools={handleOpenTools}
                   onReadFullSurah={(surah, verse) => {
                     setQuranSelection({ surah, verse });
                     navigateTo('quran');
                   }}
                 />
-              )}
+              ) : prayerError ? (
+                <div className="h-full flex flex-col items-center justify-center text-center p-8 space-y-4">
+                  <WifiOff className="w-10 h-10 text-accent-gold/60" />
+                  <p className="text-sm text-text-primary/70">
+                    {language === 'ur'
+                      ? 'انٹرنیٹ دستیاب نہیں ہے۔ براہ کرم کنکشن چیک کر کے دوبارہ کوشش کریں۔'
+                      : 'Unable to load prayer times. Please check your internet connection.'}
+                  </p>
+                  <button
+                    onClick={() => {
+                      setIsLoading(true);
+                      const coords = location || { lat: 21.4225, lng: 39.8262 };
+                      loadPrayerTimes(coords.lat, coords.lng);
+                    }}
+                    className="px-5 py-2.5 rounded-xl bg-accent-gold text-bg-primary text-xs font-bold uppercase tracking-wider"
+                  >
+                    {language === 'ur' ? 'دوبارہ کوشش کریں' : 'Retry'}
+                  </button>
+                </div>
+              ) : null
+            )}
+
+            <Suspense fallback={<PageFallback />}>
               {activePage === 'quran' && (
-                <QuranReader 
-                  surahs={surahs} 
-                  language={language} 
-                  initialSurahNumber={quranSelection?.surah} 
+                <QuranReader
+                  surahs={surahs}
+                  isSurahsLoading={isSurahsLoading}
+                  surahsError={surahsError}
+                  onRetrySurahs={loadSurahs}
+                  language={language}
+                  initialSurahNumber={quranSelection?.surah}
                   initialAyahNumber={quranSelection?.verse}
                   onOpenTools={handleOpenTools}
                   onBack={handleGoBack}
                 />
               )}
-              {activePage === 'reading' && <QuranReading language={language} onOpenTools={handleOpenTools} onBack={handleGoBack} />}
-              {activePage === 'azkar' && <DailyAzkar language={language} onOpenTools={handleOpenTools} onBack={handleGoBack} />}
-              {activePage === 'tasbeeh' && <Tasbeeh language={language} onOpenTools={handleOpenTools} onBack={handleGoBack} />}
-              {activePage === 'tools' && <Tools language={language} setLanguage={setLanguage} theme={theme} setTheme={setTheme} onBack={handleGoBack} />}
-            </motion.div>
-          </AnimatePresence>
+              {activePage === 'reading' && (
+                <QuranReading
+                  language={language}
+                  onOpenTools={handleOpenTools}
+                  onBack={handleGoBack}
+                />
+              )}
+              {activePage === 'azkar' && (
+                <DailyAzkar
+                  language={language}
+                  onOpenTools={handleOpenTools}
+                  onBack={handleGoBack}
+                />
+              )}
+              {activePage === 'tasbeeh' && (
+                <Tasbeeh
+                  language={language}
+                  onOpenTools={handleOpenTools}
+                  onBack={handleGoBack}
+                />
+              )}
+              {activePage === 'tools' && (
+                <Tools
+                  language={language}
+                  setLanguage={setLanguage}
+                  theme={theme}
+                  setTheme={setTheme}
+                  onBack={handleGoBack}
+                />
+              )}
+            </Suspense>
+          </div>
         )}
       </main>
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-bg-secondary shadow-[0_-10px_30px_rgba(0,0,0,0.5)] border-t border-border-main z-50 flex items-center justify-around px-6 py-4 rounded-t-3xl backdrop-blur-xl">
+      {/* Bottom Navigation (no backdrop-blur-xl for smooth WebView scrolling) */}
+      <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-bg-secondary shadow-[0_-4px_14px_rgba(0,0,0,0.3)] border-t border-border-main z-50 flex items-center justify-around px-6 py-4 rounded-t-3xl">
         {navItems.map((item) => (
           <button
             key={item.id}
@@ -203,19 +285,16 @@ export default function App() {
               navigateTo(item.id as Page);
             }}
             className={cn(
-              "flex flex-col items-center gap-1.5 transition-all duration-300 relative",
+              "flex flex-col items-center gap-1.5 transition-colors duration-150 relative",
               activePage === item.id ? "text-accent-gold" : "text-text-primary/40 hover:text-text-primary/70"
             )}
           >
-            <item.icon className={cn("w-6 h-6", activePage === item.id && "scale-110")} />
-            <span className="text-[10px] font-medium tracking-wide uppercase transition-all duration-300">
+            <item.icon className={cn("w-6 h-6", activePage === item.id && "scale-105")} />
+            <span className="text-[10px] font-medium tracking-wide uppercase">
               {item.label}
             </span>
             {activePage === item.id && (
-              <motion.div 
-                layoutId="nav-glow"
-                className="absolute -top-1 w-8 h-1 bg-accent-gold rounded-full blur-[2px]"
-              />
+              <div className="absolute -top-1 w-8 h-1 bg-accent-gold rounded-full" />
             )}
           </button>
         ))}

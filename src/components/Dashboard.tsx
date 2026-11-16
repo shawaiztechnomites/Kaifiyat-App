@@ -1,10 +1,9 @@
-import { motion } from 'motion/react';
 import { Clock, Sun, Moon, Cloud, Menu, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { PrayerTimes, HijriDate } from '../types';
 import { formatTime, getRemainingTime, cn } from '../lib/utils';
-import { getVerseOfTheDay } from '../services/api';
+import { getVerseOfTheDay, getCachedVerseOfTheDay, VerseOfTheDay } from '../services/api';
 
 interface Props {
   prayerData: { timings: PrayerTimes; date: HijriDate } | null;
@@ -14,19 +13,31 @@ interface Props {
 }
 
 export default function Dashboard({ prayerData, onOpenTools, onReadFullSurah, language }: Props) {
-  const [verse, setVerse] = useState<{ arabic: string; translation: string; surah: string; surahNumber: number; number: number } | null>(null);
-  const [isLoadingVerse, setIsLoadingVerse] = useState(true);
+  const [verse, setVerse] = useState<VerseOfTheDay | null>(() => getCachedVerseOfTheDay(language));
+  const [isLoadingVerse, setIsLoadingVerse] = useState<boolean>(() => getCachedVerseOfTheDay(language) === null);
 
   useEffect(() => {
-    getVerseOfTheDay(language).then(data => {
-      setVerse(data);
+    const cached = getCachedVerseOfTheDay(language);
+    if (cached) {
+      setVerse(cached);
       setIsLoadingVerse(false);
+      return;
+    }
+
+    let active = true;
+    setIsLoadingVerse(true);
+    getVerseOfTheDay(language).then(data => {
+      if (active) {
+        setVerse(data);
+        setIsLoadingVerse(false);
+      }
     });
+    return () => {
+      active = false;
+    };
   }, [language]);
 
-  if (!prayerData) return null;
-
-  const t = {
+  const t = useMemo(() => ({
     en: {
       assalamu: 'Assalamu',
       alaikum: 'Alaikum',
@@ -49,38 +60,42 @@ export default function Dashboard({ prayerData, onOpenTools, onReadFullSurah, la
       in: 'میں',
       updated: 'اپ ڈیٹ'
     }
-  }[language];
+  }[language]), [language]);
 
-  const { timings, date } = prayerData;
-  const prayers = language === 'ur' ? [
-    { name: 'فجر', original: 'Fajr', time: timings.Fajr, icon: Sun },
-    { name: 'سورج نکلنا', original: 'Sunrise', time: timings.Sunrise, icon: Sun },
-    { name: 'ظہر', original: 'Zohar', time: timings.Dhuhr, icon: Cloud },
-    { name: 'عصر', original: 'Asr', time: timings.Asr, icon: Cloud },
-    { name: 'مغرب', original: 'Maghrib', time: timings.Maghrib, icon: Moon },
-    { name: 'عشاء', original: 'Isha', time: timings.Isha, icon: Moon },
-  ] : [
-    { name: 'Fajr', original: 'Fajr', time: timings.Fajr, icon: Sun },
-    { name: 'Sunrise', original: 'Sunrise', time: timings.Sunrise, icon: Sun },
-    { name: 'Zohar', original: 'Zohar', time: timings.Dhuhr, icon: Cloud },
-    { name: 'Asr', original: 'Asr', time: timings.Asr, icon: Cloud },
-    { name: 'Maghrib', original: 'Maghrib', time: timings.Maghrib, icon: Moon },
-    { name: 'Isha', original: 'Isha', time: timings.Isha, icon: Moon },
-  ];
+  const prayers = useMemo(() => {
+    if (!prayerData) return [];
+    const { timings } = prayerData;
+    return language === 'ur' ? [
+      { name: 'فجر', original: 'Fajr', time: timings.Fajr, icon: Sun },
+      { name: 'سورج نکلنا', original: 'Sunrise', time: timings.Sunrise, icon: Sun },
+      { name: 'ظہر', original: 'Zohar', time: timings.Dhuhr, icon: Cloud },
+      { name: 'عصر', original: 'Asr', time: timings.Asr, icon: Cloud },
+      { name: 'مغرب', original: 'Maghrib', time: timings.Maghrib, icon: Moon },
+      { name: 'عشاء', original: 'Isha', time: timings.Isha, icon: Moon },
+    ] : [
+      { name: 'Fajr', original: 'Fajr', time: timings.Fajr, icon: Sun },
+      { name: 'Sunrise', original: 'Sunrise', time: timings.Sunrise, icon: Sun },
+      { name: 'Zohar', original: 'Zohar', time: timings.Dhuhr, icon: Cloud },
+      { name: 'Asr', original: 'Asr', time: timings.Asr, icon: Cloud },
+      { name: 'Maghrib', original: 'Maghrib', time: timings.Maghrib, icon: Moon },
+      { name: 'Isha', original: 'Isha', time: timings.Isha, icon: Moon },
+    ];
+  }, [prayerData, language]);
 
-  // Helper to find next prayer
+  if (!prayerData || prayers.length === 0) return null;
+
+  const { timings } = prayerData;
   const now = new Date();
-  const getNextPrayer = () => {
-    for (const p of prayers) {
-      const [h, m] = p.time.split(':').map(Number);
-      const prayerTime = new Date();
-      prayerTime.setHours(h, m, 0, 0);
-      if (prayerTime > now) return p;
+  let nextPrayer = prayers[0];
+  for (const p of prayers) {
+    const [h, m] = p.time.split(':').map(Number);
+    const prayerTime = new Date();
+    prayerTime.setHours(h, m, 0, 0);
+    if (prayerTime > now) {
+      nextPrayer = p;
+      break;
     }
-    return prayers[0]; // Next day's Fajr
-  };
-
-  const nextPrayer = getNextPrayer();
+  }
   const remaining = getRemainingTime(nextPrayer.time);
 
   return (
@@ -101,6 +116,7 @@ export default function Dashboard({ prayerData, onOpenTools, onReadFullSurah, la
         </div>
         <button 
           onClick={onOpenTools}
+          aria-label="Open menu"
           className="p-3 glass-card rounded-2xl text-accent-gold hover:bg-white/5 transition-colors"
         >
           <Menu className="w-5 h-5" />
@@ -108,13 +124,8 @@ export default function Dashboard({ prayerData, onOpenTools, onReadFullSurah, la
       </header>
 
       {/* Hero: Next Prayer */}
-      <motion.div 
-        initial={{ y: 10, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.2 }}
-        className="glass-card rounded-[2.5rem] p-8 relative overflow-hidden group border-accent-gold/20"
-      >
-        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+      <div className="glass-card rounded-[2.5rem] p-8 relative overflow-hidden group border-accent-gold/20">
+        <div className="absolute top-0 right-0 p-4 opacity-5">
           <nextPrayer.icon className="w-32 h-32 text-accent-gold" />
         </div>
         
@@ -128,18 +139,17 @@ export default function Dashboard({ prayerData, onOpenTools, onReadFullSurah, la
         <p className="text-accent-gold text-lg font-medium tracking-tight">{formatTime(nextPrayer.time)}</p>
         
         <div className="mt-8 flex items-center justify-between">
-          <div className="w-48 h-1 bg-border-main rounded-full">
-            <motion.div 
-              initial={{ width: 0 }}
-              animate={{ width: `${Math.max(5, 100 - (remaining.hours * 60 + remaining.minutes) / 2)}%` }}
-              className="h-full bg-accent-gold rounded-full shadow-[0_0_8px_rgba(197,160,89,0.5)]" 
+          <div className="w-48 h-1 bg-border-main rounded-full overflow-hidden">
+            <div 
+              style={{ width: `${Math.max(5, 100 - (remaining.hours * 60 + remaining.minutes) / 2)}%` }}
+              className="h-full bg-accent-gold rounded-full" 
             />
           </div>
           <p className="text-text-primary/60 text-[10px] uppercase font-bold tracking-widest italic">
             {t.in} {remaining.hours > 0 && `${remaining.hours}h `}{remaining.minutes}m
           </p>
         </div>
-      </motion.div>
+      </div>
 
       {/* Prayer Times Grid */}
       <section className="space-y-4">
@@ -150,12 +160,11 @@ export default function Dashboard({ prayerData, onOpenTools, onReadFullSurah, la
         
         <div className="grid grid-cols-1 gap-3">
           {prayers.map((prayer) => (
-            <motion.div
+            <div
               key={prayer.original}
-              whileHover={{ scale: 1.02 }}
               className={cn(
-                "glass-card p-4 rounded-2xl flex items-center justify-between transition-all",
-                nextPrayer.original === prayer.original ? "bg-bg-card border-accent-gold/40 shadow-lg shadow-accent-gold/5" : "bg-bg-secondary/40"
+                "glass-card p-4 rounded-2xl flex items-center justify-between",
+                nextPrayer.original === prayer.original ? "bg-bg-card border-accent-gold/40" : "bg-bg-secondary/40"
               )}
             >
               <div className="flex items-center gap-4">
@@ -181,7 +190,7 @@ export default function Dashboard({ prayerData, onOpenTools, onReadFullSurah, la
                   {formatTime(prayer.time)}
                 </p>
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
       </section>
@@ -200,14 +209,7 @@ export default function Dashboard({ prayerData, onOpenTools, onReadFullSurah, la
           
           {isLoadingVerse ? (
             <div className="h-24 flex items-center justify-center">
-              <div className="w-1/2 h-2 bg-white/5 rounded-full overflow-hidden">
-                <motion.div 
-                  initial={{ x: '-100%' }}
-                  animate={{ x: '100%' }}
-                  transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                  className="w-full h-full bg-accent-gold/20"
-                />
-              </div>
+              <div className="w-1/2 h-2 bg-accent-gold/15 rounded-full animate-pulse" />
             </div>
           ) : (
             <>

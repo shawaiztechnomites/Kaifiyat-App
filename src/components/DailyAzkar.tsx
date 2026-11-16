@@ -1,11 +1,9 @@
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
 import { 
   Sun, 
   Moon, 
   ChevronRight, 
   ChevronLeft, 
-  RotateCcw, 
   CheckCircle2, 
   BookOpen, 
   Languages, 
@@ -276,14 +274,12 @@ export default function DailyAzkar({ language, onOpenTools, onBack }: { language
         </header>
 
         <div className="grid grid-cols-1 gap-4">
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+          <button
             onClick={() => setActiveSection('azkar')}
-            className="glass-card p-6 rounded-[2.5rem] border border-accent-gold/10 hover:border-accent-gold/30 text-left group"
+            className="glass-card p-6 rounded-[2.5rem] border border-accent-gold/10 hover:border-accent-gold/30 text-left group transition-transform active:scale-[0.99]"
           >
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-accent-gold/10 flex items-center justify-center text-accent-gold group-hover:scale-110 transition-transform">
+              <div className="w-12 h-12 rounded-2xl bg-accent-gold/10 flex items-center justify-center text-accent-gold">
                 <Sparkles className="w-6 h-6" />
               </div>
               <div>
@@ -292,16 +288,14 @@ export default function DailyAzkar({ language, onOpenTools, onBack }: { language
               </div>
               <ChevronRight className="w-5 h-5 ml-auto text-text-primary/20" />
             </div>
-          </motion.button>
+          </button>
 
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+          <button
             onClick={() => setActiveSection('namaz-method')}
-            className="glass-card p-6 rounded-[2.5rem] border border-accent-gold/10 hover:border-accent-gold/30 text-left group"
+            className="glass-card p-6 rounded-[2.5rem] border border-accent-gold/10 hover:border-accent-gold/30 text-left group transition-transform active:scale-[0.99]"
           >
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-accent-gold/10 flex items-center justify-center text-accent-gold group-hover:scale-110 transition-transform">
+              <div className="w-12 h-12 rounded-2xl bg-accent-gold/10 flex items-center justify-center text-accent-gold">
                 <BookOpen className="w-6 h-6" />
               </div>
               <div>
@@ -310,16 +304,14 @@ export default function DailyAzkar({ language, onOpenTools, onBack }: { language
               </div>
               <ChevronRight className="w-5 h-5 ml-auto text-text-primary/20" />
             </div>
-          </motion.button>
+          </button>
 
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+          <button
             onClick={() => setActiveSection('namaz-translation')}
-            className="glass-card p-6 rounded-[2.5rem] border border-accent-gold/10 hover:border-accent-gold/30 text-left group"
+            className="glass-card p-6 rounded-[2.5rem] border border-accent-gold/10 hover:border-accent-gold/30 text-left group transition-transform active:scale-[0.99]"
           >
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-accent-gold/10 flex items-center justify-center text-accent-gold group-hover:scale-110 transition-transform">
+              <div className="w-12 h-12 rounded-2xl bg-accent-gold/10 flex items-center justify-center text-accent-gold">
                 <Languages className="w-6 h-6" />
               </div>
               <div>
@@ -328,7 +320,7 @@ export default function DailyAzkar({ language, onOpenTools, onBack }: { language
               </div>
               <ChevronRight className="w-5 h-5 ml-auto text-text-primary/20" />
             </div>
-          </motion.button>
+          </button>
         </div>
       </div>
     );
@@ -359,8 +351,8 @@ export default function DailyAzkar({ language, onOpenTools, onBack }: { language
             <button 
               onClick={() => setActiveAzkarTab('morning')}
               className={cn(
-                "flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all font-bold text-xs uppercase tracking-widest",
-                activeAzkarTab === 'morning' ? "bg-accent-gold text-bg-primary shadow-lg shadow-accent-gold/20" : "text-text-primary/40"
+                "flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors font-bold text-xs uppercase tracking-widest",
+                activeAzkarTab === 'morning' ? "bg-accent-gold text-bg-primary shadow-sm" : "text-text-primary/40"
               )}
             >
               <Sun className="w-4 h-4" />
@@ -369,8 +361,8 @@ export default function DailyAzkar({ language, onOpenTools, onBack }: { language
             <button 
               onClick={() => setActiveAzkarTab('evening')}
               className={cn(
-                "flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all font-bold text-xs uppercase tracking-widest",
-                activeAzkarTab === 'evening' ? "bg-accent-gold text-bg-primary shadow-lg shadow-accent-gold/20" : "text-text-primary/40"
+                "flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors font-bold text-xs uppercase tracking-widest",
+                activeAzkarTab === 'evening' ? "bg-accent-gold text-bg-primary shadow-sm" : "text-text-primary/40"
               )}
             >
               <Moon className="w-4 h-4" />

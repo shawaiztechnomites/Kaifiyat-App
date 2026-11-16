@@ -1,5 +1,4 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { motion, useAnimation, AnimatePresence } from 'motion/react';
 import { RefreshCcw, Target, Volume2, VolumeX, Check, X, Menu, ChevronLeft } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { cn } from '../lib/utils';
@@ -38,7 +37,6 @@ export default function Tasbeeh({ language, onOpenTools, onBack }: Props) {
   const [targetError, setTargetError] = useState('');
   const [resetConfirm, setResetConfirm] = useState(false);
 
-  const controls = useAnimation();
   const audioCtxRef = useRef<AudioContext | null>(null);
 
   useEffect(() => {
@@ -152,7 +150,7 @@ export default function Tasbeeh({ language, onOpenTools, onBack }: Props) {
     }
   }, [soundEnabled, getAudioContext]);
 
-  const handleIncrement = useCallback(async () => {
+  const handleIncrement = useCallback(() => {
     const nextCount = count + 1;
     const completed = nextCount >= target;
 
@@ -161,7 +159,7 @@ export default function Tasbeeh({ language, onOpenTools, onBack }: Props) {
     setTotalCount(prev => prev + 1);
     if (completed) {
       confetti({
-        particleCount: 100,
+        particleCount: 80,
         spread: 70,
         origin: { y: 0.8 },
         colors: ['#D4AF37', '#15803D', '#FFFFFF']
@@ -170,17 +168,7 @@ export default function Tasbeeh({ language, onOpenTools, onBack }: Props) {
     } else {
       setCount(nextCount);
     }
-
-    // Animate scale
-    await controls.start({
-      scale: 0.95,
-      transition: { duration: 0.05 }
-    });
-    controls.start({
-      scale: 1,
-      transition: { type: 'spring', stiffness: 300, damping: 12 }
-    });
-  }, [count, target, controls, playTapSound]);
+  }, [count, target, playTapSound]);
 
   const handleReset = () => {
     if (resetConfirm) {
@@ -332,10 +320,9 @@ export default function Tasbeeh({ language, onOpenTools, onBack }: Props) {
             />
           </svg>
 
-          <motion.button
-            animate={controls}
+          <button
             onClick={handleIncrement}
-            className="w-64 h-64 rounded-full glass-card border-accent-gold/20 shadow-[0_0_50px_rgba(197,160,89,0.1)] flex flex-col items-center justify-center relative z-10 hover:border-accent-gold/40 transition-colors active:shadow-inner select-none"
+            className="w-64 h-64 rounded-full glass-card border-accent-gold/20 shadow-[0_0_16px_rgba(197,160,89,0.08)] flex flex-col items-center justify-center relative z-10 hover:border-accent-gold/40 transition-transform duration-75 active:scale-95 select-none"
           >
             <span className={cn(
               "font-mono font-bold text-accent-gold leading-none tabular-nums",
@@ -349,7 +336,7 @@ export default function Tasbeeh({ language, onOpenTools, onBack }: Props) {
             )}>
               {t.tap}
             </span>
-          </motion.button>
+          </button>
         </div>
 
         <div className="grid grid-cols-2 gap-4 w-full px-2">
@@ -398,22 +385,15 @@ export default function Tasbeeh({ language, onOpenTools, onBack }: Props) {
       </section>
 
       {/* Custom Target Modal */}
-      <AnimatePresence>
-        {isTargetModalOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
-            onClick={() => setIsTargetModalOpen(false)}
+      {isTargetModalOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4"
+          onClick={() => setIsTargetModalOpen(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm glass-card rounded-3xl p-6 space-y-5 border-accent-gold/30"
           >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-sm glass-card rounded-3xl p-6 space-y-5 border-accent-gold/30"
-            >
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h3 className={cn(
@@ -508,10 +488,9 @@ export default function Tasbeeh({ language, onOpenTools, onBack }: Props) {
                   </button>
                 </div>
               </form>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

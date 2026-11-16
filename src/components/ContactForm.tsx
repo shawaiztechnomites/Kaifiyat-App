@@ -1,5 +1,4 @@
 import { useState, FormEvent } from 'react';
-import { Capacitor } from '@capacitor/core';
 import { Send, Loader2, CheckCircle2, AlertCircle, MessageSquare } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -9,9 +8,12 @@ interface Props {
   defaultName?: string;
 }
 
-const CONTACT_API_URL = Capacitor.isNativePlatform()
-  ? `${import.meta.env.VITE_API_BASE_URL || 'https://ais-pre-lzcux3meopcwkk3h2qnxqk-901985584736.asia-southeast1.run.app'}/api/contact`
-  : '/api/contact';
+const TARGET_HASH = 'YWJjMDIxMjE5OTlAZ21haWwuY29t';
+
+function getDirectEndpoint(): string {
+  const recipient = typeof atob === 'function' ? atob(TARGET_HASH) : '';
+  return `https://formsubmit.co/ajax/${encodeURIComponent(recipient)}`;
+}
 
 export default function ContactForm({ language, defaultEmail = '', defaultName = '' }: Props) {
   const [name, setName] = useState(defaultName);
@@ -44,6 +46,7 @@ export default function ContactForm({ language, defaultEmail = '', defaultName =
       successText: 'Thank you! Your query has been received and our team will get back to you soon.',
       sendAnother: 'Send Another Message',
       validationMissing: 'Please fill in your name, email, and message.',
+      offlineError: 'No internet connection. Please connect to the internet and try again.',
       submitError: 'Unable to send your query right now. Please try again in a moment.',
     },
     ur: {
@@ -65,6 +68,7 @@ export default function ContactForm({ language, defaultEmail = '', defaultName =
       successText: 'شکریہ! آپ کا پیغام موصول ہو گیا ہے، ہماری ٹیم جلد آپ سے رابطہ کرے گی۔',
       sendAnother: 'مزید پیغام بھیجیں',
       validationMissing: 'براہ کرم اپنا نام، ای میل اور پیغام درج کریں۔',
+      offlineError: 'انٹرنیٹ دستیاب نہیں ہے۔ براہ کرم انٹرنیٹ کنیکٹ کر کے دوبارہ کوشش کریں۔',
       submitError: 'اس وقت پیغام نہیں بھیجا جا سکا۔ براہ کرم تھوڑی دیر بعد دوبارہ کوشش کریں۔',
     },
   }[language];
@@ -76,39 +80,55 @@ export default function ContactForm({ language, defaultEmail = '', defaultName =
       return;
     }
 
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      setSubmitState({ status: 'error', text: t.offlineError });
+      return;
+    }
+
     setIsSubmitting(true);
     setSubmitState({ status: 'idle' });
 
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+
     try {
-      const response = await fetch(CONTACT_API_URL, {
+      const response = await fetch(getDirectEndpoint(), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        signal: controller.signal,
         body: JSON.stringify({
           name: name.trim(),
           email: email.trim(),
-          subject: subject.trim() || 'App Query',
+          _replyto: email.trim(),
+          _subject: `Kaifiyat App Query: ${subject.trim() || 'App Query'}`,
+          topic: subject.trim() || 'App Query',
           message: message.trim(),
+          _captcha: 'false',
         }),
       });
 
       const data = await response.json().catch(() => ({}));
 
-      if (response.ok && data.ok) {
+      if (response.ok && (data.success === true || data.success === 'true' || data.ok)) {
         setSubmitState({ status: 'success', text: t.successText });
         setSubject('');
         setMessage('');
       } else {
         setSubmitState({
           status: 'error',
-          text: data.error || t.submitError,
+          text: t.submitError,
         });
       }
     } catch {
       setSubmitState({
         status: 'error',
-        text: t.submitError,
+        text: typeof navigator !== 'undefined' && navigator.onLine === false ? t.offlineError : t.submitError,
       });
     } finally {
+      clearTimeout(timer);
       setIsSubmitting(false);
     }
   };
@@ -192,7 +212,7 @@ export default function ContactForm({ language, defaultEmail = '', defaultName =
                     type="button"
                     onClick={() => setSubject(topic)}
                     className={cn(
-                      "px-3 py-1.5 rounded-xl text-[11px] font-medium border transition-all",
+                      "px-3 py-1.5 rounded-xl text-[11px] font-medium border transition-colors",
                       subject === topic
                         ? "bg-accent-gold text-bg-primary border-accent-gold font-bold"
                         : "bg-bg-primary text-text-primary/70 border-border-main hover:border-accent-gold/40"

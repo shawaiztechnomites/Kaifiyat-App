@@ -48,7 +48,7 @@
 }
 
 .glass-card {
-  @apply bg-bg-card border border-border-main shadow-xl;
+  @apply bg-bg-card border border-border-main shadow-[0_2px_10px_rgba(0,0,0,0.18)];
 }
 
 .arabic-text {
