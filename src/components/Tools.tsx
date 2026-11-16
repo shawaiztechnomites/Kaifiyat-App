@@ -23,6 +23,8 @@ import { cn } from '../lib/utils';
 import { NAMES_OF_MUHAMMAD } from '../constants/names';
 import { getAsmaAlHusna } from '../services/api';
 import { auth, signInWithGoogle, signInWithFacebook, logout, onAuthStateChanged, User } from '../services/firebase';
+import ShareApp from './ShareApp';
+import ContactForm from './ContactForm';
 
 interface Props {
   onBack: () => void;
@@ -32,7 +34,7 @@ interface Props {
   setTheme: (theme: 'dark' | 'light') => void;
 }
 
-type ToolView = 'list' | 'zakat' | 'names' | 'muhammad_names' | 'language' | 'theme';
+type ToolView = 'list' | 'zakat' | 'names' | 'muhammad_names' | 'language' | 'theme' | 'share' | 'contact';
 
 export default function Tools({ onBack, language, setLanguage, theme, setTheme }: Props) {
   const [currentView, setCurrentView] = useState<ToolView>('list');
@@ -181,7 +183,7 @@ export default function Tools({ onBack, language, setLanguage, theme, setTheme }
       <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-right duration-300 pb-10">
         {asmaAlHusna.map((name, i) => (
           <div key={i} className="glass-card p-4 rounded-2xl text-center space-y-2 group hover:border-accent-gold/30 transition-colors">
-            <p className="arabic-text text-2xl text-white group-hover:text-accent-gold transition-colors">{name.name}</p>
+            <p className="arabic-text text-2xl text-text-primary group-hover:text-accent-gold transition-colors">{name.name}</p>
             <div>
               <p className="text-[10px] text-text-primary font-medium tracking-tight">{name.transliteration}</p>
               <p className="text-[9px] text-text-primary/40 uppercase tracking-tighter leading-tight">{name.en.meaning}</p>
@@ -197,7 +199,7 @@ export default function Tools({ onBack, language, setLanguage, theme, setTheme }
       <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-right duration-300 pb-10">
         {NAMES_OF_MUHAMMAD.map((name, i) => (
           <div key={i} className="glass-card p-4 rounded-2xl text-center space-y-2 group hover:border-accent-gold/30 transition-colors">
-            <p className="arabic-text text-2xl text-white group-hover:text-accent-gold transition-colors">{name.name}</p>
+            <p className="arabic-text text-2xl text-text-primary group-hover:text-accent-gold transition-colors">{name.name}</p>
             <div>
               <p className="text-xs font-bold text-accent-gold">{name.transliteration}</p>
               <p className={cn(
@@ -248,6 +250,8 @@ export default function Tools({ onBack, language, setLanguage, theme, setTheme }
              currentView === 'zakat' ? t.zakat : 
              currentView === 'names' ? (language === 'ur' ? 'اللہ کے نام' : 'Names of Allah') : 
              currentView === 'muhammad_names' ? (language === 'ur' ? 'محمد ﷺ کے نام' : 'Muhammad PBUH Names') : 
+             currentView === 'share' ? t.share :
+             currentView === 'contact' ? t.contact :
              currentView === 'theme' ? t.theme : t.settings}
           </h2>
           <p className="text-text-primary/40 text-[10px] uppercase tracking-widest font-bold">
@@ -334,7 +338,7 @@ export default function Tools({ onBack, language, setLanguage, theme, setTheme }
                       <motion.button
                         key={item.id}
                         whileTap={{ scale: 0.98 }}
-                        onClick={() => ['zakat', 'names', 'muhammad_names', 'language', 'theme'].includes(item.id) && setCurrentView(item.id as ToolView)}
+                        onClick={() => setCurrentView(item.id as ToolView)}
                         className="w-full glass-card p-5 rounded-3xl flex items-center justify-between group hover:bg-white/5 transition-colors"
                       >
                         <div className="flex items-center gap-5 text-left">
@@ -365,6 +369,14 @@ export default function Tools({ onBack, language, setLanguage, theme, setTheme }
             {currentView === 'zakat' && <ZakatCalculator />}
             {currentView === 'names' && <NamesOfAllah />}
             {currentView === 'muhammad_names' && <NamesOfMuhammad />}
+            {currentView === 'share' && <ShareApp language={language} />}
+            {currentView === 'contact' && (
+              <ContactForm
+                language={language}
+                defaultEmail={user?.email || ''}
+                defaultName={user?.displayName || ''}
+              />
+            )}
             {currentView === 'theme' && (
               <div className="glass-card p-6 rounded-3xl space-y-6">
                 <p className="text-xs font-bold text-text-primary/60 uppercase tracking-widest text-center">{t.themeTitle}</p>

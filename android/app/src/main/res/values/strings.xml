@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Kaifiyat</string>
+    <string name="title_activity_main">Kaifiyat</string>
+    <string name="package_name">com.kaifiyat.app</string>
+    <string name="custom_url_scheme">com.kaifiyat.app</string>
+</resources>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, ChevronLeft, BookOpen, Volume2, Bookmark, Share2, Pause } from 'lucide-react';
+import { Search, ChevronLeft, BookOpen, Volume2, Bookmark, Share2, Pause, Menu } from 'lucide-react';
 import { Surah, Ayah } from '../types';
 import { getSurahDetail } from '../services/api';
 import { cn } from '../lib/utils';
@@ -10,9 +10,11 @@ interface Props {
   language: 'en' | 'ur';
   initialSurahNumber?: number | null;
   initialAyahNumber?: number | null;
+  onOpenTools: () => void;
+  onBack: () => void;
 }
 
-export default function QuranReader({ surahs, language, initialSurahNumber, initialAyahNumber }: Props) {
+export default function QuranReader({ surahs, language, initialSurahNumber, initialAyahNumber, onOpenTools, onBack }: Props) {
   const [selectedSurah, setSelectedSurah] = useState<Surah | null>(null);
   const [ayahs, setAyahs] = useState<Ayah[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -118,7 +120,13 @@ export default function QuranReader({ surahs, language, initialSurahNumber, init
           <div className="text-center">
             <h2 className="text-lg font-sans font-bold text-accent-gold tracking-tight">{selectedSurah.englishName}</h2>
           </div>
-          <div className="w-10" />
+          <button
+            onClick={onOpenTools}
+            aria-label="Open menu"
+            className="p-2.5 glass-card rounded-xl text-accent-gold hover:bg-white/5 transition-colors"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
         </header>
 
         {isLoadingDetail ? (
@@ -167,7 +175,7 @@ export default function QuranReader({ surahs, language, initialSurahNumber, init
                    <button className="p-1.5 text-text-primary/20 hover:text-accent-gold transition-colors opacity-0 group-hover:opacity-100"><Share2 className="w-4 h-4" /></button>
                  </div>
                  
-                 <p className="arabic-text text-2xl lg:text-3xl text-white leading-[2.5] text-right mb-6" dir="rtl">
+                 <p className="arabic-text text-2xl lg:text-3xl text-text-primary leading-[2.5] text-right mb-6" dir="rtl">
                    {ayah.text}
                  </p>
                  
@@ -190,7 +198,25 @@ export default function QuranReader({ surahs, language, initialSurahNumber, init
   return (
     <div className="space-y-6">
       <header>
-        <h2 className="text-2xl font-sans text-accent-gold font-bold mb-4 tracking-tight uppercase">Holy Quran</h2>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onBack}
+              aria-label="Go back"
+              className="p-3 glass-card rounded-2xl text-accent-gold hover:bg-white/5 transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <h2 className="text-2xl font-sans text-accent-gold font-bold tracking-tight uppercase">Holy Quran</h2>
+          </div>
+          <button
+            onClick={onOpenTools}
+            aria-label="Open menu"
+            className="p-3 glass-card rounded-2xl text-accent-gold hover:bg-white/5 transition-colors"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+        </div>
         <div className="relative group">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-primary/40 group-focus-within:text-accent-gold transition-colors" />
           <input 

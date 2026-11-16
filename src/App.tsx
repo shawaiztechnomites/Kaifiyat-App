@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Book, 
   Clock, 
-  Compass, 
+  Sparkles, 
   Menu, 
   Search, 
   Sun, 
@@ -28,15 +28,16 @@ import { PrayerTimes, HijriDate, Surah } from './types';
 // Page Components (will extract to files later)
 import Dashboard from './components/Dashboard';
 import QuranReader from './components/QuranReader';
-import QiblaFinder from './components/QiblaFinder';
+import DailyAzkar from './components/DailyAzkar';
 import Tasbeeh from './components/Tasbeeh';
 import Tools from './components/Tools';
 import QuranReading from './components/QuranReading';
 
-type Page = 'home' | 'quran' | 'reading' | 'qibla' | 'tasbeeh' | 'tools';
+type Page = 'home' | 'quran' | 'reading' | 'azkar' | 'tasbeeh' | 'tools';
 
 export default function App() {
   const [activePage, setActivePage] = useState<Page>('home');
+  const [pageHistory, setPageHistory] = useState<Page[]>(['home']);
   const [language, setLanguage] = useState<'en' | 'ur'>('en');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -44,6 +45,30 @@ export default function App() {
   const [surahs, setSurahs] = useState<Surah[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [quranSelection, setQuranSelection] = useState<{ surah: number; verse: number } | null>(null);
+
+  const navigateTo = (page: Page) => {
+    setActivePage(page);
+    setPageHistory((prev) => {
+      if (prev[prev.length - 1] === page) return prev;
+      return [...prev, page];
+    });
+  };
+
+  const handleGoBack = () => {
+    setPageHistory((prev) => {
+      if (prev.length > 1) {
+        const nextHistory = prev.slice(0, -1);
+        setActivePage(nextHistory[nextHistory.length - 1]);
+        return nextHistory;
+      }
+      setActivePage('home');
+      return ['home'];
+    });
+  };
+
+  const handleOpenTools = () => {
+    navigateTo('tools');
+  };
   
   useEffect(() => {
     const root = window.document.documentElement;
@@ -55,8 +80,11 @@ export default function App() {
   }, [theme]);
 
   useEffect(() => {
-    // Get geolocation
-    if (navigator.geolocation) {
+    const fallbackToMakkah = () => {
+      setLocation({ lat: 21.4225, lng: 39.8262 });
+    };
+
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           setLocation({
@@ -65,13 +93,13 @@ export default function App() {
           });
         },
         (error) => {
-          console.error('Location error:', error);
-          // Default to Makkah if denied
-          setLocation({ lat: 21.4225, lng: 39.8262 });
-        }
+          console.warn('Geolocation unavailable, defaulting to Makkah:', error?.message || `code ${error?.code ?? 'unknown'}`);
+          fallbackToMakkah();
+        },
+        { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
       );
     } else {
-      setLocation({ lat: 21.4225, lng: 39.8262 });
+      fallbackToMakkah();
     }
     
     // Fetch Surahs ahead of time
@@ -92,14 +120,14 @@ export default function App() {
       { id: 'home', label: 'Home', icon: LayoutGrid },
       { id: 'quran', label: 'Quran', icon: BookOpen },
       { id: 'reading', label: 'Reading', icon: Book },
-      { id: 'qibla', label: 'Qibla', icon: Compass },
+      { id: 'azkar', label: 'Deen Lab', icon: Sparkles },
       { id: 'tasbeeh', label: 'Tasbeeh', icon: CircleDot },
     ],
     ur: [
       { id: 'home', label: 'ہوم', icon: LayoutGrid },
       { id: 'quran', label: 'قرآن', icon: BookOpen },
       { id: 'reading', label: 'مطالعہ', icon: Book },
-      { id: 'qibla', label: 'قبلہ', icon: Compass },
+      { id: 'azkar', label: 'دین لیب', icon: Sparkles },
       { id: 'tasbeeh', label: 'تسبیح', icon: CircleDot },
     ]
   }[language];
@@ -137,10 +165,10 @@ export default function App() {
                 <Dashboard 
                   language={language} 
                   prayerData={prayerData} 
-                  onOpenTools={() => setActivePage('tools')} 
+                  onOpenTools={handleOpenTools} 
                   onReadFullSurah={(surah, verse) => {
                     setQuranSelection({ surah, verse });
-                    setActivePage('quran');
+                    navigateTo('quran');
                   }}
                 />
               )}
@@ -150,12 +178,14 @@ export default function App() {
                   language={language} 
                   initialSurahNumber={quranSelection?.surah} 
                   initialAyahNumber={quranSelection?.verse}
+                  onOpenTools={handleOpenTools}
+                  onBack={handleGoBack}
                 />
               )}
-              {activePage === 'reading' && <QuranReading language={language} />}
-              {activePage === 'qibla' && <QiblaFinder language={language} location={location} />}
-              {activePage === 'tasbeeh' && <Tasbeeh language={language} />}
-              {activePage === 'tools' && <Tools language={language} setLanguage={setLanguage} theme={theme} setTheme={setTheme} onBack={() => setActivePage('home')} />}
+              {activePage === 'reading' && <QuranReading language={language} onOpenTools={handleOpenTools} onBack={handleGoBack} />}
+              {activePage === 'azkar' && <DailyAzkar language={language} onOpenTools={handleOpenTools} onBack={handleGoBack} />}
+              {activePage === 'tasbeeh' && <Tasbeeh language={language} onOpenTools={handleOpenTools} onBack={handleGoBack} />}
+              {activePage === 'tools' && <Tools language={language} setLanguage={setLanguage} theme={theme} setTheme={setTheme} onBack={handleGoBack} />}
             </motion.div>
           </AnimatePresence>
         )}
@@ -170,7 +200,7 @@ export default function App() {
               if (item.id === 'quran' && activePage !== 'quran') {
                 setQuranSelection(null);
               }
-              setActivePage(item.id as Page);
+              navigateTo(item.id as Page);
             }}
             className={cn(
               "flex flex-col items-center gap-1.5 transition-all duration-300 relative",

@@ -1,15 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Book, ChevronLeft, Volume2, Pause, Search } from 'lucide-react';
+import { Book, ChevronLeft, Volume2, Pause, Search, Menu } from 'lucide-react';
 import { Ayah } from '../types';
 import { getJuzDetail } from '../services/api';
 import { cn } from '../lib/utils';
 
 interface Props {
   language: 'en' | 'ur';
+  onOpenTools: () => void;
+  onBack: () => void;
 }
 
-export default function QuranReading({ language }: Props) {
+export default function QuranReading({ language, onOpenTools, onBack }: Props) {
   const [selectedJuz, setSelectedJuz] = useState<number | null>(null);
   const [ayahs, setAyahs] = useState<Ayah[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -93,19 +95,28 @@ export default function QuranReading({ language }: Props) {
   if (selectedJuz) {
     return (
       <div className="flex flex-col h-full animate-in fade-in slide-in-from-right duration-300">
-        <header className="flex items-center gap-4 mb-6">
-          <button 
-            onClick={() => setSelectedJuz(null)}
-            className="p-3 glass-card rounded-2xl text-accent-gold hover:bg-white/5 transition-all"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <div>
-            <h2 className={cn("text-xl font-bold text-accent-gold", language === 'ur' && "urdu-text")}>
-              {t.para} {selectedJuz}
-            </h2>
-            <p className="text-[10px] text-text-primary/40 uppercase tracking-widest font-bold">Urdu Translation</p>
+        <header className="flex items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setSelectedJuz(null)}
+              className="p-3 glass-card rounded-2xl text-accent-gold hover:bg-white/5 transition-all"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <div>
+              <h2 className={cn("text-xl font-bold text-accent-gold", language === 'ur' && "urdu-text")}>
+                {t.para} {selectedJuz}
+              </h2>
+              <p className="text-[10px] text-text-primary/40 uppercase tracking-widest font-bold">Urdu Translation</p>
+            </div>
           </div>
+          <button
+            onClick={onOpenTools}
+            aria-label="Open menu"
+            className="p-3 glass-card rounded-2xl text-accent-gold hover:bg-white/5 transition-colors"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
         </header>
 
         {isLoading ? (
@@ -137,7 +148,7 @@ export default function QuranReading({ language }: Props) {
                   </button>
                 </div>
 
-                <p className="arabic-text text-2xl text-white mb-6 leading-[2.5] text-right">
+                <p className="arabic-text text-2xl text-text-primary mb-6 leading-[2.5] text-right">
                   {ayah.text}
                 </p>
                 
@@ -172,11 +183,29 @@ export default function QuranReading({ language }: Props) {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h2 className={cn("text-2xl font-bold mb-1 tracking-tight uppercase", language === 'ur' ? "urdu-text" : "font-sans text-accent-gold")}>
-          {t.title}
-        </h2>
-        <p className="text-text-primary/40 text-[10px] uppercase tracking-widest font-bold">{t.sub}</p>
+      <header className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onBack}
+            aria-label="Go back"
+            className="p-3 glass-card rounded-2xl text-accent-gold hover:bg-white/5 transition-colors shrink-0"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <div>
+            <h2 className={cn("text-2xl font-bold mb-1 tracking-tight uppercase", language === 'ur' ? "urdu-text" : "font-sans text-accent-gold")}>
+              {t.title}
+            </h2>
+            <p className="text-text-primary/40 text-[10px] uppercase tracking-widest font-bold">{t.sub}</p>
+          </div>
+        </div>
+        <button
+          onClick={onOpenTools}
+          aria-label="Open menu"
+          className="p-3 glass-card rounded-2xl text-accent-gold hover:bg-white/5 transition-colors shrink-0"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
       </header>
 
       <div className="grid grid-cols-2 gap-3 pb-10">

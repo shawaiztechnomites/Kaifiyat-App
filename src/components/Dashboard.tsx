@@ -55,14 +55,14 @@ export default function Dashboard({ prayerData, onOpenTools, onReadFullSurah, la
   const prayers = language === 'ur' ? [
     { name: 'فجر', original: 'Fajr', time: timings.Fajr, icon: Sun },
     { name: 'سورج نکلنا', original: 'Sunrise', time: timings.Sunrise, icon: Sun },
-    { name: 'ظہر', original: 'Dhuhr', time: timings.Dhuhr, icon: Cloud },
+    { name: 'ظہر', original: 'Zohar', time: timings.Dhuhr, icon: Cloud },
     { name: 'عصر', original: 'Asr', time: timings.Asr, icon: Cloud },
     { name: 'مغرب', original: 'Maghrib', time: timings.Maghrib, icon: Moon },
     { name: 'عشاء', original: 'Isha', time: timings.Isha, icon: Moon },
   ] : [
     { name: 'Fajr', original: 'Fajr', time: timings.Fajr, icon: Sun },
     { name: 'Sunrise', original: 'Sunrise', time: timings.Sunrise, icon: Sun },
-    { name: 'Dhuhr', original: 'Dhuhr', time: timings.Dhuhr, icon: Cloud },
+    { name: 'Zohar', original: 'Zohar', time: timings.Dhuhr, icon: Cloud },
     { name: 'Asr', original: 'Asr', time: timings.Asr, icon: Cloud },
     { name: 'Maghrib', original: 'Maghrib', time: timings.Maghrib, icon: Moon },
     { name: 'Isha', original: 'Isha', time: timings.Isha, icon: Moon },
@@ -211,7 +211,7 @@ export default function Dashboard({ prayerData, onOpenTools, onReadFullSurah, la
             </div>
           ) : (
             <>
-              <p className="arabic-text text-xl text-white mb-4 leading-loose text-right">
+              <p className="arabic-text text-xl text-text-primary mb-4 leading-loose text-right">
                 {verse?.arabic}
               </p>
               <p className={cn(

@@ -1,7 +1,9 @@
+import { Capacitor } from '@capacitor/core';
 import { PrayerTimes, HijriDate, Surah, Ayah } from '../types';
 
-const ALADHAN_BASE = 'https://api.aladhan.com/v1';
-const QURAN_CLOUD_BASE = 'https://api.alquran.cloud/v1';
+const isNativeAndroid = Capacitor.isNativePlatform();
+const ALADHAN_BASE = isNativeAndroid ? 'https://api.aladhan.com/v1' : '/api/proxy/aladhan';
+const QURAN_CLOUD_BASE = isNativeAndroid ? 'https://api.alquran.cloud/v1' : '/api/proxy/qurancloud';
 
 export const getPrayerTimes = async (latitude: number, longitude: number): Promise<{ timings: PrayerTimes; date: HijriDate } | null> => {
   try {
